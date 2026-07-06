@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Team {
+  id                String    @id @default(cuid())
+  name              String    @unique
+  college           String
+  track             String
+  table             String?
+  status            String    @default("pending")
+  checkedInAt       String?
+  optOutPublicMedia Boolean   @default(false)
+  createdAt         String    @default("")
+  updatedAt         String    @default("")
+
+  @@map("teams")
+}
+
+model CheckIn {
+  id           String   @id @default(cuid())
+  teamId       String
+  source       String
+  receivedAt   String
+  scheduledFor String
+  priority     Int      @default(70)
+  processed    Boolean  @default(false)
+
+  @@map("check_ins")
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  type      String
+  source    String
+  teamId    String?
+  payload   String   @default("{}")
+  createdAt String   @default("")
+
+  @@map("events")
+}
+
+model DisplayMessage {
+  id        String   @id @default(cuid())
+  channel   String
+  author    String
+  content   String
+  metadata  String   @default("{}")
+  createdAt String   @default("")
+
+  @@map("display_messages")
+}
+
+model Welcome {
+  id          String   @id @default(cuid())
+  teamId      String
+  teamName    String
+  college     String
+  track       String
+  template    String
+  ctaLabel    String
+  reactions   String   @default("{}")
+  startedAt   String
+  endedAt     String?
+  createdAt   String   @default("")
+
+  @@map("welcomes")
+}
+
+model Reaction {
+  id         String   @id @default(cuid())
+  welcomeId  String
+  teamId     String
+  kind       String
+  sessionHash String
+  createdAt  String   @default("")
+
+  @@map("reactions")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  content     String
+  channel     String
+  isEmergency Boolean   @default(false)
+  createdBy   String
+  createdAt   String   @default("")
+}
+
+model GitLabEvent {
+  id        String   @id @default(cuid())
+  teamId    String
+  teamName  String
+  eventType String
+  message   String
+  metadata  String   @default("{}")
+  createdAt String   @default("")
+
+  @@map("gitlab_events")
+}
+
+model DisplayClient {
+  id         String   @id @default(cuid())
+  name       String
+  location   String
+  lastHeartbeat String @default("")
+  connectedAt String  @default("")
+  isOnline   Boolean  @default(true)
+}
