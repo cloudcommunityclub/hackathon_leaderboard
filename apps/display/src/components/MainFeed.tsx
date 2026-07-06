@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Team, Welcome, BotMessage } from '@build-server/shared';
 import { channels, botAuthors } from '../lib/constants';
@@ -25,9 +25,23 @@ const WELCOME_PHRASES = [
 
 const WAVE_EMOJIS = ['🤖', '🏄', '🤠', '🚀', '🔥', '🍟', '🍕', '🎉', '💩', '😎'];
 
+function getTrackEmoji(track: string): string {
+  const t = track.toLowerCase();
+  if (t.includes('ai') || t.includes('intelligence') || t.includes('agent')) return '🤖';
+  if (t.includes('fin') || t.includes('pay') || t.includes('money') || t.includes('bank')) return '💳';
+  if (t.includes('health') || t.includes('med') || t.includes('care') || t.includes('bio')) return '🏥';
+  if (t.includes('ed') || t.includes('learn') || t.includes('school') || t.includes('campus')) return '🎓';
+  if (t.includes('web3') || t.includes('crypto') || t.includes('chain') || t.includes('deci')) return '🌐';
+  if (t.includes('sec') || t.includes('cyber') || t.includes('def') || t.includes('priv')) return '🛡️';
+  if (t.includes('green') || t.includes('eco') || t.includes('sus') || t.includes('env')) return '🌱';
+  if (t.includes('infra') || t.includes('cloud') || t.includes('dev') || t.includes('net')) return '⚡';
+  return '🚀';
+}
+
 export function MainFeed({ activeChannel, welcome, teams, messages, onShowCursor }: MainFeedProps) {
   const currentChannel = channels.find((c) => c.id === activeChannel) || channels[0];
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0);
 
   // Find the full team object for the active welcome to retrieve table number
   const welcomeTeam = welcome
@@ -44,6 +58,21 @@ export function MainFeed({ activeChannel, welcome, teams, messages, onShowCursor
     acc[team.track].push(team);
     return acc;
   }, {});
+
+  const trackNames = Object.keys(teamsByTrack);
+  const totalTracks = trackNames.length;
+  const safeTrackIdx = totalTracks > 0 ? activeTrackIndex % totalTracks : 0;
+  const currentTrackName = trackNames[safeTrackIdx] || 'All Builders';
+  const currentTrackTeams = teamsByTrack[currentTrackName] || [];
+
+  // Auto-rotate track showcase every 8 seconds on stage display
+  useEffect(() => {
+    if (activeChannel !== 'hall-of-builders' || totalTracks <= 1) return;
+    const timer = setInterval(() => {
+      setActiveTrackIndex((prev) => (prev + 1) % totalTracks);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [activeChannel, totalTracks]);
 
   return (
     <div className="flex-1 flex flex-col bg-discord-bg relative min-w-0 select-none z-0 overflow-hidden">
@@ -168,7 +197,7 @@ export function MainFeed({ activeChannel, welcome, teams, messages, onShowCursor
                 teams.map((team, idx) => {
                   const phrase = WELCOME_PHRASES[idx % WELCOME_PHRASES.length];
                   const emoji = WAVE_EMOJIS[idx % WAVE_EMOJIS.length];
-                  const isLatestWelcome = welcome?.teamId === team.id || idx === teams.length - 1;
+                  const isLatestWelcome = welcome && (welcome.teamId === team.id || welcome.teamName === team.name);
                   const dateStr = team.checkedInAt
                     ? new Date(team.checkedInAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                     : '06/07/2026, 09:30';
@@ -254,49 +283,140 @@ export function MainFeed({ activeChannel, welcome, teams, messages, onShowCursor
               )}
             </div>
           ) : activeChannel === 'hall-of-builders' ? (
-            /* HALL OF BUILDERS WALL */
-            <div className="space-y-6">
-              {Object.entries(teamsByTrack).map(([track, trackTeams]) => (
-                <div key={track} className="space-y-2">
-                  <div className="flex items-center gap-2 px-1">
-                    <span className="w-2 h-2 rounded-full bg-brand-blurple" />
-                    <h3 className="text-xs font-bold text-discord-muted uppercase tracking-wider">{track}</h3>
-                    <span className="text-[10px] font-mono bg-discord-sidebar px-2 py-0.5 rounded text-discord-muted font-bold">
-                      {trackTeams.length}
-                    </span>
+            /* HALL OF BUILDERS SHOWCASE WALL */
+            <div className="space-y-6 pb-8">
+              {/* Hero Showcase Banner */}
+              <div className="bg-gradient-to-r from-brand-blurple/20 via-discord-sidebar to-discord-bg border border-brand-blurple/30 rounded-2xl p-6 flex items-center justify-between shadow-lg">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-1.5">
+                    <span className="text-2xl">🏛️</span>
+                    <h2 className="text-xl font-bold font-display text-white tracking-tight">
+                      The Hall of Builders Showcase
+                    </h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {trackTeams.map((team) => (
-                      <div
-                        key={team.id}
-                        className={`flex items-center gap-3 p-2.5 rounded-md border transition-all ${
-                          team.status === 'online'
-                            ? 'bg-discord-sidebar border-discord-border shadow-sm text-white'
-                            : 'bg-discord-sidebar/40 border-transparent text-discord-muted opacity-75'
-                        }`}
-                      >
-                        <div className="relative shrink-0">
-                          <div className="w-8 h-8 rounded-full bg-brand-blurple/40 flex items-center justify-center text-xs font-bold text-white">
-                            {team.name.slice(5, 7)}
-                          </div>
-                          {team.status === 'online' && (
-                            <span className="w-3 h-3 rounded-full bg-brand-online border-2 border-discord-sidebar absolute -bottom-0.5 -right-0.5" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold truncate leading-tight">{team.name}</p>
-                          <p className="text-[10px] text-discord-muted truncate leading-tight mt-0.5">{team.college}</p>
-                        </div>
-                        {team.table && (
-                          <span className="text-[10px] bg-discord-bg border border-discord-border text-discord-muted px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
-                            {team.table}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                  <p className="text-sm text-discord-muted max-w-2xl">
+                    Spotlighting elite engineering teams across innovation tracks building the future of digital India.
+                  </p>
+                </div>
+                <div className="hidden sm:flex items-center gap-5 bg-discord-sidebar/80 border border-discord-border px-5 py-3 rounded-xl shadow-inner shrink-0">
+                  <div className="text-center">
+                    <p className="text-[10px] font-mono text-discord-muted uppercase font-bold">Total Teams</p>
+                    <p className="text-xl font-extrabold font-mono text-white leading-none mt-1">{teams.length}</p>
+                  </div>
+                  <div className="w-px h-8 bg-discord-border" />
+                  <div className="text-center">
+                    <p className="text-[10px] font-mono text-discord-muted uppercase font-bold">Online Now</p>
+                    <p className="text-xl font-extrabold font-mono text-brand-online leading-none mt-1">
+                      {teams.filter((t) => t.status === 'online').length}
+                    </p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Interactive Track Navigation Tabs */}
+              <div className="flex items-center gap-2.5 flex-wrap pb-4 border-b border-discord-border/60">
+                {trackNames.map((track, idx) => {
+                  const isSelected = idx === safeTrackIdx;
+                  return (
+                    <button
+                      key={track}
+                      onClick={() => setActiveTrackIndex(idx)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer select-none ${
+                        isSelected
+                          ? 'bg-brand-blurple text-white shadow-lg shadow-brand-blurple/30 scale-[1.03] border-2 border-white/20'
+                          : 'bg-discord-sidebar text-discord-muted hover:bg-discord-hover hover:text-white border border-discord-border'
+                      }`}
+                    >
+                      <span className="text-base">{getTrackEmoji(track)}</span>
+                      <span className="tracking-wide">{track}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-mono text-[10px] ${
+                          isSelected ? 'bg-black/30 text-white font-extrabold' : 'bg-black/20 text-discord-muted'
+                        }`}
+                      >
+                        {teamsByTrack[track]?.length || 0}
+                      </span>
+                    </button>
+                  );
+                })}
+                <div className="ml-auto flex items-center gap-2 text-xs font-mono font-semibold text-brand-online bg-brand-online/10 px-3.5 py-1.5 rounded-full border border-brand-online/30 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-brand-online animate-pulse" />
+                  <span>Cycling Tracks ({safeTrackIdx + 1}/{totalTracks || 1})</span>
+                </div>
+              </div>
+
+              {/* Animated Grid of Builders for Active Track */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTrackName}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                >
+                  {currentTrackTeams.map((team) => {
+                    const isOnline = team.status === 'online';
+                    return (
+                      <div
+                        key={team.id}
+                        className={`rounded-2xl p-4 border transition-all duration-300 flex flex-col justify-between relative group overflow-hidden ${
+                          isOnline
+                            ? 'bg-discord-sidebar border-discord-border hover:border-brand-blurple/60 shadow-md hover:shadow-xl hover:-translate-y-0.5 text-white'
+                            : 'bg-discord-sidebar/40 border-discord-border/40 opacity-75 hover:opacity-100 text-discord-muted'
+                        }`}
+                      >
+                        {/* Top Card Header: Avatar + Table Pill */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative shrink-0">
+                              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-blurple to-indigo-600 flex items-center justify-center text-sm font-extrabold text-white shadow-inner font-display">
+                                {team.name.slice(5, 7)}
+                              </div>
+                              {isOnline ? (
+                                <span className="w-3.5 h-3.5 rounded-full bg-brand-online border-2 border-discord-sidebar absolute -bottom-0.5 -right-0.5 shadow-sm animate-pulse" />
+                              ) : (
+                                <span className="w-3.5 h-3.5 rounded-full bg-discord-muted/60 border-2 border-discord-sidebar absolute -bottom-0.5 -right-0.5" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-sm font-bold text-white group-hover:text-brand-blurple transition-colors leading-snug truncate">
+                                {team.name}
+                              </h3>
+                              <p className="text-[11px] text-discord-muted truncate leading-tight mt-0.5">
+                                {team.college}
+                              </p>
+                            </div>
+                          </div>
+
+                          {team.table && (
+                            <span className="text-xs bg-discord-bg/90 border border-discord-border text-slate-300 px-2.5 py-1 rounded-lg font-mono font-bold shrink-0 shadow-sm">
+                              {team.table}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bottom Card Footer: Track Badge + Status Pill */}
+                        <div className="pt-3 border-t border-discord-border/40 flex items-center justify-between text-[11px]">
+                          <span className="text-discord-muted font-medium flex items-center gap-1.5 truncate">
+                            <span>{getTrackEmoji(team.track)}</span>
+                            <span className="truncate">{team.track}</span>
+                          </span>
+                          {isOnline ? (
+                            <span className="font-mono font-bold text-brand-online bg-brand-online/15 px-2 py-0.5 rounded border border-brand-online/30">
+                              ONLINE
+                            </span>
+                          ) : (
+                            <span className="font-mono text-discord-muted bg-discord-bg px-2 py-0.5 rounded">
+                              ARRIVED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
             </div>
           ) : (
             /* STANDARD CHANNEL MESSAGES */
