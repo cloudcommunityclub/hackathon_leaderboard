@@ -1,0 +1,20 @@
+{
+  "name": "digital-india-build-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital India Build Server - Discord-inspired live venue operating system for hackathons",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter server exec prisma generate",
+    "db:push": "pnpm --filter server exec prisma db push",
+    "db:seed": "pnpm --filter server exec tsx prisma/seed.ts",
+    "db:studio": "pnpm --filter server exec prisma studio"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
