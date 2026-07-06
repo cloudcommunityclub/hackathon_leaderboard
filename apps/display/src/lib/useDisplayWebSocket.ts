@@ -105,7 +105,7 @@ export function useDisplayWebSocket() {
       setState((s) => ({ ...s, activeChannel: nextChannel }));
       if (rotationRef.current) clearTimeout(rotationRef.current);
       startRotation();
-    }, 4500 + Math.random() * 3000);
+    }, 20000 + Math.random() * 10000);
   }, [state.phase, state.activeChannel]);
 
   useEffect(() => {
