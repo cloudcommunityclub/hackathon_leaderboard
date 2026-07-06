@@ -50,7 +50,7 @@ export function createScheduler(deps: {
       template: pick(JOIN_TEMPLATES).replace('{team}', team.name),
       ctaLabel: pick(CTA_LABELS),
       startedAt: new Date().toISOString(),
-      endsAt: new Date(Date.now() + 4500).toISOString(),
+      endsAt: new Date(Date.now() + 15000).toISOString(),
       reactions: {},
     };
 
@@ -68,7 +68,7 @@ export function createScheduler(deps: {
         await deps.displayStateManager.publishState(current);
         deps.gateway.broadcast('welcome.end', { welcomeId: welcome.id });
       }
-    }, 4500);
+    }, 15000);
   };
 
   // Start background queue polling for resilient welcome scheduling across restarts
