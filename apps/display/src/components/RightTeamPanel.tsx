@@ -18,7 +18,7 @@ export function RightTeamPanel({ teams, teamsOnline, totalTeams }: RightTeamPane
   const [pendingPage, setPendingPage] = useState(0);
 
   const waveUrl = import.meta.env.DEV
-    ? `http://${window.location.hostname}:3000/wave`
+    ? `http://${window.location.hostname}:3001/wave`
     : `${window.location.origin}/wave`;
 
   const sortedTeams = [...teams].sort((a, b) => {
