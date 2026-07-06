@@ -6,7 +6,16 @@ import { createScheduler } from '../services/scheduler.js';
 const WINDOW_SECONDS = 15;
 const MAX_REACTIONS_ANIMATED = 30;
 
-export async function waveRoutes(fastify: FastifyInstance, deps: { prisma: PrismaClient; redis: Redis; scheduler: ReturnType<typeof createScheduler> }) {
+export async function waveRoutes(
+  fastify: FastifyInstance,
+  deps: {
+    prisma: PrismaClient;
+    redis: Redis;
+    scheduler: ReturnType<typeof createScheduler>;
+    displayStateManager?: { getCurrentState: () => Promise<any>; publishState: (state: any) => Promise<void> };
+    gateway?: { broadcast: (type: string, payload: any) => void };
+  }
+) {
   fastify.get('/current', async (request, reply) => {
     const welcome = await deps.redis.get('display:current_welcome');
     if (!welcome) {
@@ -49,6 +58,22 @@ export async function waveRoutes(fastify: FastifyInstance, deps: { prisma: Prism
       const parsed = JSON.parse(welcomeData) as Record<string, any>;
       parsed.reactions = displayCounts;
       await deps.redis.set('display:current_welcome', JSON.stringify(parsed), 'EX', 120);
+    }
+
+    if (deps.displayStateManager) {
+      try {
+        const state = await deps.displayStateManager.getCurrentState();
+        if (state.welcome) {
+          state.welcome.reactions = displayCounts;
+          await deps.displayStateManager.publishState(state);
+        }
+      } catch (e) {
+        console.error('Error publishing reaction state:', e);
+      }
+    }
+
+    if (deps.gateway) {
+      deps.gateway.broadcast('welcome.reaction', { welcomeId, kind, counts: displayCounts });
     }
 
     return reply.send({ ok: true, counts: displayCounts });
