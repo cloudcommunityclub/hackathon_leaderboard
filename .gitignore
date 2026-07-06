@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.pnpm-debug.log*
+.DS_Store
+*.tsbuildinfo
+*.db
+*.db-journal
+*.log
+.env
+.env.*
+!.env.example
